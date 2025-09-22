@@ -1,0 +1,160 @@
+import csv
+import os
+import re
+from datetime import datetime
+from typing import List, Dict
+
+
+TEMPLATE_HEADERS = [
+    "name",
+    "partner_id",
+    "user_id",
+    "activity_ids",
+    "order_line/name",
+    "order_line/product_uom_qty",
+    "order_line/price_unit",
+    "order_line/product_id",
+    "order_line/product_template_id/name",
+    "order_line/product_template_id",
+]
+
+
+def detect_delimiter(file_path: str) -> str:
+    try:
+        with open(file_path, 'r', encoding='utf-8', newline='') as f:
+            first = f.readline()
+            return ';' if first.count(';') > first.count(',') else ','
+    except UnicodeDecodeError:
+        with open(file_path, 'r', encoding='latin-1', newline='') as f:
+            first = f.readline()
+            return ';' if first.count(';') > first.count(',') else ','
+
+
+def parse_rows(file_path: str) -> List[Dict]:
+    delim = detect_delimiter(file_path)
+    rows: List[Dict] = []
+    try:
+        with open(file_path, 'r', encoding='utf-8', newline='') as f:
+            for row in csv.DictReader(f, delimiter=delim):
+                rows.append(row)
+    except UnicodeDecodeError:
+        with open(file_path, 'r', encoding='latin-1', newline='') as f:
+            for row in csv.DictReader(f, delimiter=delim):
+                rows.append(row)
+    return rows
+
+
+def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
+    def get_val(row: Dict, keys: List[str]) -> str:
+        for k in keys:
+            if k in row and row[k] is not None:
+                return str(row.get(k, '')).strip()
+        return ''
+
+    header_keys = list(epicor_rows[0].keys()) if epicor_rows else []
+    doc_keys = ['Doc #', 'DOC #', 'Doc#', 'DOC#', 'Doc No', 'DOC NO', 'Doc']
+    customer_keys = ['Customer Name', 'CUSTOMER NAME', 'Customer', 'CLIENTE']
+    sku_keys = ['SKU', 'Sku', 'sku', 'Item', 'ITEM']
+    desc_keys = ['Description', 'DESCRIPTION', 'description', 'DESCRIPCION', 'DESCRIPCIÓN']
+    qty_keys = ['Qty', 'QTY', 'Quantity']
+    price_keys = ['Price', 'PRICE', 'Unit Price', 'UnitPrice']
+
+    doc_key = next((k for k in header_keys if k in doc_keys), None)
+    customer_key = next((k for k in header_keys if k in customer_keys), None)
+
+    template_rows: List[Dict] = []
+
+    if doc_key:
+        current_doc = None
+        for row in epicor_rows:
+            sku = get_val(row, sku_keys)
+            if not sku:
+                continue
+            description = get_val(row, desc_keys)
+            qty = get_val(row, qty_keys)
+            price = get_val(row, price_keys)
+            doc_number = get_val(row, [doc_key])
+            customer_name = get_val(row, [customer_key]) if customer_key else ''
+
+            try:
+                quantity = float(qty.replace(',', '')) if qty else 0.0
+            except Exception:
+                quantity = 0.0
+            try:
+                unit_price = float(price.replace(',', '')) if price else 0.0
+            except Exception:
+                unit_price = 0.0
+
+            row_out: Dict = {
+                'name': '',
+                'partner_id': '',
+                'user_id': '',
+                'activity_ids': '',
+            }
+
+            if doc_number and doc_number != current_doc and doc_number != '0':
+                current_doc = doc_number
+                order_name = f"O{re.sub(r'\s+', '', doc_number)}"
+                row_out['name'] = order_name
+                row_out['partner_id'] = customer_name or 'Default User'
+                row_out['user_id'] = 'Jabes Omar De La Cruz'
+
+            product_template_id = f"[{sku}] {description}"
+            row_out.update({
+                'order_line/name': product_template_id,
+                'order_line/product_uom_qty': f"{quantity:.2f}",
+                'order_line/price_unit': f"{unit_price:.2f}",
+                'order_line/product_id': product_template_id,
+                'order_line/product_template_id/name': description,
+                'order_line/product_template_id': product_template_id,
+            })
+            template_rows.append(row_out)
+        return template_rows
+
+    # single-order fallback
+    quotation_number = f"QO{datetime.now().strftime('%m%d%H%M')}"
+    first = True
+    for row in epicor_rows:
+        sku = get_val(row, sku_keys)
+        if not sku:
+            continue
+        description = get_val(row, desc_keys)
+        qty = get_val(row, qty_keys)
+        price = get_val(row, price_keys)
+        try:
+            quantity = float(qty.replace(',', '')) if qty else 0.0
+        except Exception:
+            quantity = 0.0
+        try:
+            unit_price = float(price.replace(',', '')) if price else 0.0
+        except Exception:
+            unit_price = 0.0
+        row_out: Dict = {
+            'name': '',
+            'partner_id': '',
+            'user_id': '',
+            'activity_ids': '',
+        }
+        if first:
+            row_out['name'] = quotation_number
+            row_out['partner_id'] = 'Default User'
+            row_out['user_id'] = 'Jabes Omar De La Cruz'
+            first = False
+        product_template_id = f"[{sku}] {description}"
+        row_out.update({
+            'order_line/name': product_template_id,
+            'order_line/product_uom_qty': f"{quantity:.2f}",
+            'order_line/price_unit': f"{unit_price:.2f}",
+            'order_line/product_id': product_template_id,
+            'order_line/product_template_id/name': description,
+            'order_line/product_template_id': product_template_id,
+        })
+        template_rows.append(row_out)
+    return template_rows
+
+
+def write_template_csv(rows: List[Dict], output_path: str) -> None:
+    with open(output_path, 'w', encoding='utf-8', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=TEMPLATE_HEADERS)
+        writer.writeheader()
+        writer.writerows(rows)

@@ -1,0 +1,5 @@
+Ln#;SKU;Description;Qty;Price;Extension;Codes;GP%;Cost;P.O. #;P.O. Line #;B/O Qty;Vendor;S/O SKU;Location;Dept;Redeemed Qty;"Transfer
+Filled Qty";"Transfer
+Filled Date";TRAN Store;TRAN/ORD Trx #;TRAN Status;"Dir Ship
+Buyout"
+1;TEST123;Any Name Test Product;3.00;25.99;77.97;;40.00;15.59;;;;;;;A1;;;;;0;; 
