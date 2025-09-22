@@ -25,10 +25,10 @@
     <div class="container">
       <div class="card">
         <h1>Sales Order Converter</h1>
-        <p class="hint">Upload an Epicor CSV and convert it to the Sales Order Template. The API endpoint can be any deployment of your converter (e.g., Render).</p>
+        <p class="hint">Upload an Epicor CSV and convert it to the Sales Order Template. The API endpoint is prefilled with your Render deployment.</p>
 
         <label for="endpoint">API Endpoint</label>
-        <input id="endpoint" type="url" placeholder="https://your-app.onrender.com/convert" />
+        <input id="endpoint" type="url" value="https://sale-order-app.onrender.com/convert" />
         <div class="hint">Must point to the /convert endpoint of your FastAPI app.</div>
 
         <label for="file">CSV File</label>
@@ -53,7 +53,7 @@
         const endpoint = (endpointInput.value || '').trim();
         const file = fileInput.files && fileInput.files[0];
         if (!endpoint) {
-          msg.textContent = 'Please enter the API endpoint URL (e.g., https://your-app.onrender.com/convert).';
+          msg.textContent = 'Please enter the API endpoint URL (e.g., https://sale-order-app.onrender.com/convert).';
           msg.classList.add('error');
           return;
         }

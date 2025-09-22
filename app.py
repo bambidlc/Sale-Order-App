@@ -1,11 +1,26 @@
 from fastapi import FastAPI, UploadFile, File, Response
 from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 import io
 import os
 from src.converter import parse_rows, convert_rows, TEMPLATE_HEADERS
 import csv
 
 app = FastAPI(title="Sales Order Converter API")
+
+# CORS: allow GitHub Pages and local testing
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://bambidlc.github.io",
+        "https://bambidlc.github.io/Sale-Order-App",
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/upload", response_class=HTMLResponse)
 async def upload_page():
