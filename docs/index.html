@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sales Order Converter</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 40px; color: #222; }
+      .container { max-width: 720px; margin: 0 auto; }
+      .card { border: 1px solid #e5e5e5; border-radius: 8px; padding: 24px; }
+      h1 { margin-top: 0; font-size: 20px; }
+      label { display: block; margin: 12px 0 6px; font-weight: 600; }
+      input[type=text], input[type=url] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+      input[type=file] { margin: 8px 0 12px; }
+      button { padding: 10px 16px; background: #0d6efd; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+      button:disabled { opacity: 0.7; cursor: not-allowed; }
+      .hint { color: #666; font-size: 12px; }
+      .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+      .mt { margin-top: 12px; }
+      .success { color: #137333; font-size: 13px; }
+      .error { color: #d93025; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>Sales Order Converter</h1>
+        <p class="hint">Upload an Epicor CSV and convert it to the Sales Order Template. The API endpoint can be any deployment of your converter (e.g., Render).</p>
+
+        <label for="endpoint">API Endpoint</label>
+        <input id="endpoint" type="url" placeholder="https://your-app.onrender.com/convert" />
+        <div class="hint">Must point to the /convert endpoint of your FastAPI app.</div>
+
+        <label for="file">CSV File</label>
+        <input id="file" type="file" accept=".csv" />
+
+        <button id="submit">Convert and Download</button>
+        <div id="msg" class="mt"></div>
+      </div>
+    </div>
+
+    <script>
+      const $ = (s) => document.querySelector(s);
+      const endpointInput = $('#endpoint');
+      const fileInput = $('#file');
+      const submitBtn = $('#submit');
+      const msg = $('#msg');
+
+      async function convertAndDownload() {
+        msg.textContent = '';
+        msg.className = 'mt';
+
+        const endpoint = (endpointInput.value || '').trim();
+        const file = fileInput.files && fileInput.files[0];
+        if (!endpoint) {
+          msg.textContent = 'Please enter the API endpoint URL (e.g., https://your-app.onrender.com/convert).';
+          msg.classList.add('error');
+          return;
+        }
+        if (!file) {
+          msg.textContent = 'Please choose a CSV file to upload.';
+          msg.classList.add('error');
+          return;
+        }
+
+        const fd = new FormData();
+        fd.append('file', file);
+
+        try {
+          submitBtn.disabled = true;
+          msg.textContent = 'Uploading and converting...';
+          msg.classList.add('hint');
+
+          const res = await fetch(endpoint, { method: 'POST', body: fd });
+          if (!res.ok) {
+            const t = await res.text();
+            throw new Error(`HTTP ${res.status}: ${t || 'Request failed'}`);
+          }
+
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const baseName = (file.name || 'converted').replace(/\.csv$/i, '');
+          a.href = url;
+          a.download = `${baseName}_converted.csv`;
+          document.body.appendChild(a);
+          a.click();
+          URL.revokeObjectURL(url);
+          a.remove();
+
+          msg.textContent = 'Conversion complete. Your download should start automatically.';
+          msg.className = 'mt success';
+        } catch (e) {
+          msg.textContent = 'Error: ' + (e && e.message ? e.message : String(e));
+          msg.className = 'mt error';
+        } finally {
+          submitBtn.disabled = false;
+        }
+      }
+
+      submitBtn.addEventListener('click', convertAndDownload);
+    </script>
+  </body>
+</html>
