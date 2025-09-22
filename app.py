@@ -8,15 +8,10 @@ import csv
 
 app = FastAPI(title="Sales Order Converter API")
 
-# CORS: allow GitHub Pages and local testing
+# CORS: temporarily allow all origins to diagnose fetch issues
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://bambidlc.github.io",
-        "https://bambidlc.github.io/Sale-Order-App",
-        "http://127.0.0.1:8000",
-        "http://localhost:8000",
-    ],
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,7 +21,7 @@ app.add_middleware(
 async def upload_page():
     return """
 <!doctype html>
-<html lang=\"en\">
+<html lang=\"en\"> 
   <head>
     <meta charset=\"utf-8\" />
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
