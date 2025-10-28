@@ -87,17 +87,16 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
 
     header_keys = list(epicor_rows[0].keys()) if epicor_rows else []
     doc_keys = ['Doc #', 'DOC #', 'Doc#', 'DOC#', 'Doc No', 'DOC NO', 'Doc']
-    customer_keys = ['Customer Name', 'CUSTOMER NAME', 'Customer', 'CLIENTE', 'Cust #']
+    customer_keys = ['Customer Name', 'CUSTOMER NAME', 'Customer', 'CLIENTE']
     sku_keys = ['SKU', 'Sku', 'sku', 'Item', 'ITEM']
     desc_keys = ['Description', 'DESCRIPTION', 'description', 'DESCRIPCION', 'DESCRIPCIÓN']
     qty_keys = ['Qty', 'QTY', 'Quantity']
     price_keys = ['Price', 'PRICE', 'Unit Price', 'UnitPrice']
-    salesperson_keys = ['Salesperson', 'SALESPERSON', 'Sales Person', 'Sales_Person', 'Salesperson']
-    cust_keys = ['Cust #']
+    cust_keys = ['Cust #', 'Cust', 'Customer #', 'CUSTOMER #', 'Customer ID', 'CUSTOMER ID']
+    salesperson_keys = ['Salesperson', 'SALESPERSON', 'Sales Person', 'Sales_Person', 'Salesman', 'Sales Man']
 
     doc_key = next((k for k in header_keys if k in doc_keys), None)
     customer_key = next((k for k in header_keys if k in customer_keys), None)
-    cust_key = next((k for k in header_keys if k in cust_keys), None)
 
     sp_map = _get_salesperson_map()
 
@@ -114,9 +113,12 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
             price = get_val(row, price_keys)
             doc_number = get_val(row, [doc_key])
             customer_name = get_val(row, [customer_key]) if customer_key else ''
-            salesperson_code = get_val(row, salesperson_keys).upper()
+            cust_value = get_val(row, cust_keys)
+            salesperson_raw = get_val(row, salesperson_keys)
+            salesperson_code = salesperson_raw.upper() if salesperson_raw else ''
             salesperson_name = sp_map.get(salesperson_code) if salesperson_code else ''
-            cust_value = get_val(row, [cust_key]) if cust_key else ''
+            salesperson_value = salesperson_name or salesperson_raw or 'Jabes Omar De La Cruz'
+            customer_identifier = cust_value or customer_name or 'Default User'
 
             try:
                 quantity = float(qty.replace(',', '')) if qty else 0.0
@@ -142,7 +144,7 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
                 row_out['name'] = order_name
                 row_out['partner_id'] = customer_name or 'Default User'
                 # user_id from salesperson mapping; fallback to previous default
-                row_out['user_id'] = salesperson_name or 'Jabes Omar De La Cruz'
+                row_out['user_id'] = salesperson_value
 
             product_template_id = f"[{sku}] {description}"
             row_out.update({
@@ -152,8 +154,8 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
                 'order_line/product_id': product_template_id,
                 'order_line/product_template_id/name': description,
                 'order_line/product_template_id': product_template_id,
-                'Cust #': cust_value or customer_name or 'Default User',
-                'Salesperson': salesperson_name or 'Jabes Omar De La Cruz',
+                'Cust #': customer_identifier,
+                'Salesperson': salesperson_value,
             })
             template_rows.append(row_out)
         return template_rows
@@ -168,6 +170,12 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
         description = get_val(row, desc_keys)
         qty = get_val(row, qty_keys)
         price = get_val(row, price_keys)
+        cust_value = get_val(row, cust_keys)
+        salesperson_raw = get_val(row, salesperson_keys)
+        salesperson_code = salesperson_raw.upper() if salesperson_raw else ''
+        salesperson_name = sp_map.get(salesperson_code) if salesperson_code else ''
+        salesperson_value = salesperson_name or salesperson_raw or 'Jabes Omar De La Cruz'
+        customer_identifier = cust_value or 'Default User'
         try:
             quantity = float(qty.replace(',', '')) if qty else 0.0
         except Exception:
@@ -186,11 +194,11 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
         }
         if first:
             row_out['name'] = quotation_number
-            row_out['partner_id'] = 'Default User'
+            row_out['partner_id'] = customer_identifier
             # No salesperson in single-order; keep default
-            row_out['user_id'] = 'Jabes Omar De La Cruz'
-            row_out['Cust #'] = 'Default User'
-            row_out['Salesperson'] = 'Jabes Omar De La Cruz'
+            row_out['user_id'] = salesperson_value
+            row_out['Cust #'] = customer_identifier
+            row_out['Salesperson'] = salesperson_value
             first = False
         product_template_id = f"[{sku}] {description}"
         row_out.update({
@@ -200,8 +208,8 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
             'order_line/product_id': product_template_id,
             'order_line/product_template_id/name': description,
             'order_line/product_template_id': product_template_id,
-            'Cust #': 'Default User',
-            'Salesperson': 'Jabes Omar De La Cruz',
+            'Cust #': customer_identifier,
+            'Salesperson': salesperson_value,
         })
         template_rows.append(row_out)
     return template_rows
