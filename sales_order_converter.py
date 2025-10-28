@@ -18,8 +18,10 @@ class SalesOrderConverter:
         self.output_folder = "processed"
         self.template_headers = [
             "name",
-            "partner_id", 
+            "partner_id",
             "user_id",
+            "Cust #",
+            "Salesperson",
             "activity_ids",
             "order_line/name",
             "order_line/product_uom_qty",
@@ -138,6 +140,8 @@ class SalesOrderConverter:
         desc_keys = ['Description', 'DESCRIPTION', 'description', 'DESCRIPCION', 'DESCRIPCIÓN']
         qty_keys = ['Qty', 'QTY', 'Quantity']
         price_keys = ['Price', 'PRICE', 'Unit Price', 'UnitPrice']
+        cust_keys = ['Cust #', 'Cust', 'Customer #', 'CUSTOMER #', 'Customer ID', 'CUSTOMER ID']
+        salesperson_keys = ['Salesperson', 'SALESPERSON', 'Sales Person', 'Sales_Person', 'Salesman', 'Sales Man']
 
         doc_key = next((k for k in header_keys if k in doc_keys), None)
         customer_key = next((k for k in header_keys if k in customer_keys), None)
@@ -155,6 +159,9 @@ class SalesOrderConverter:
                 price = get_val(row, price_keys)
                 doc_number = get_val(row, [doc_key])
                 cust_name = get_val(row, [customer_key]) if customer_key else ""
+                cust_number = get_val(row, cust_keys)
+                customer_identifier = cust_number or cust_name or client_name or "Default User"
+                salesperson_value = get_val(row, salesperson_keys) or salesman_name or "Jabes Omar De La Cruz"
 
                 try:
                     quantity = float(qty.replace(',', '')) if qty else 0.00
@@ -176,11 +183,11 @@ class SalesOrderConverter:
                 if doc_number and doc_number != current_doc and doc_number != '0':
                     current_doc = doc_number
                     order_name = f"O{re.sub(r'\s+', '', doc_number)}"
-                    partner = cust_name if cust_name else "Default User"
+                    partner = cust_name if cust_name else (client_name or "Default User")
                     template_row.update({
                         "name": order_name,
                         "partner_id": partner,
-                        "user_id": "Jabes Omar De La Cruz",
+                        "user_id": salesperson_value,
                     })
 
                 product_template_id = f"[{sku}] {description}"
@@ -190,7 +197,9 @@ class SalesOrderConverter:
                     "order_line/price_unit": f"{unit_price:.2f}",
                     "order_line/product_id": product_template_id,
                     "order_line/product_template_id/name": description,
-                    "order_line/product_template_id": product_template_id
+                    "order_line/product_template_id": product_template_id,
+                    "Cust #": customer_identifier,
+                    "Salesperson": salesperson_value,
                 })
 
                 template_rows.append(template_row)
@@ -219,10 +228,16 @@ class SalesOrderConverter:
             except Exception:
                 unit_price = 0.00
 
+            cust_number = get_val(row, cust_keys)
+            customer_identifier = cust_number or client_name or "Default User"
+            salesperson_value = get_val(row, salesperson_keys) or salesman_name or "Jabes Omar De La Cruz"
+
             template_row = {
                 "name": "",
                 "partner_id": "",
                 "user_id": "",
+                "Cust #": "",
+                "Salesperson": "",
                 "activity_ids": "",
             }
 
@@ -230,7 +245,9 @@ class SalesOrderConverter:
                 template_row.update({
                     "name": quotation_number,
                     "partner_id": "Default User",
-                    "user_id": "Jabes Omar De La Cruz",
+                    "user_id": salesperson_value,
+                    "Cust #": customer_identifier,
+                    "Salesperson": salesperson_value,
                 })
                 first_row = False
 
@@ -241,7 +258,9 @@ class SalesOrderConverter:
                 "order_line/price_unit": f"{unit_price:.2f}",
                 "order_line/product_id": product_template_id,
                 "order_line/product_template_id/name": description,
-                "order_line/product_template_id": product_template_id
+                "order_line/product_template_id": product_template_id,
+                "Cust #": customer_identifier,
+                "Salesperson": salesperson_value,
             })
 
             template_rows.append(template_row)
@@ -349,4 +368,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()
