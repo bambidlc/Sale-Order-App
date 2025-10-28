@@ -1,4 +1,4 @@
 name,partner_id,user_id,Cust #,Salesperson,activity_ids,order_line/name,order_line/product_uom_qty,order_line/price_unit,order_line/product_id,order_line/product_template_id/name,order_line/product_template_id
-S0099999999,Kathy Gonzalez,Jabes Omar De La Cruz,,"[382007239] ""S"" HOOK 7/16X1-1/2",1.00,0.69,"[382007239] ""S"" HOOK 7/16X1-1/2","""S"" HOOK 7/16X1-1/2","[382007239] ""S"" HOOK 7/16X1-1/2"
-,,,,[87136] #136 KEY-MAILBOX-,1.00,1.99,[87136] #136 KEY-MAILBOX-,#136 KEY-MAILBOX-,[87136] #136 KEY-MAILBOX-
-,,,,This is a note,0.00,0.00,,,
+S0099999999,Kathy Gonzalez,Jabes Omar De La Cruz,CUST-0001,Kathy Gonzalez,,[382007239] "S" HOOK 7/16X1-1/2,1.00,0.69,[382007239] "S" HOOK 7/16X1-1/2,"S" HOOK 7/16X1-1/2,[382007239] "S" HOOK 7/16X1-1/2
+,,,,,,[87136] #136 KEY-MAILBOX-,1.00,1.99,[87136] #136 KEY-MAILBOX-,#136 KEY-MAILBOX-,[87136] #136 KEY-MAILBOX-
+,,,,,,This is a note,0.00,0.00,,,
