@@ -7,8 +7,8 @@ from typing import List, Dict
 
 TEMPLATE_HEADERS = [
     "name",
-    "partner_id",
-    "user_id",
+    "Cust #",
+    "Salesperson",
     "activity_ids",
     "order_line/name",
     "order_line/product_uom_qty",
@@ -17,6 +17,38 @@ TEMPLATE_HEADERS = [
     "order_line/product_template_id/name",
     "order_line/product_template_id",
 ]
+
+_SALESPERSON_MAP: Dict[str, str] | None = None
+
+
+def _load_salesperson_map(file_path: str = "Sales Person List.csv") -> Dict[str, str]:
+    mapping: Dict[str, str] = {}
+    if not os.path.exists(file_path):
+        return mapping
+    try:
+        with open(file_path, "r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f, delimiter=",")
+            for row in reader:
+                code = (row.get("Code") or "").strip().upper()
+                name = (row.get("Name") or "").strip()
+                if code and name:
+                    mapping[code] = name
+    except UnicodeDecodeError:
+        with open(file_path, "r", encoding="latin-1", newline="") as f:
+            reader = csv.DictReader(f, delimiter=",")
+            for row in reader:
+                code = (row.get("Code") or "").strip().upper()
+                name = (row.get("Name") or "").strip()
+                if code and name:
+                    mapping[code] = name
+    return mapping
+
+
+def _get_salesperson_map() -> Dict[str, str]:
+    global _SALESPERSON_MAP
+    if _SALESPERSON_MAP is None:
+        _SALESPERSON_MAP = _load_salesperson_map()
+    return _SALESPERSON_MAP
 
 
 def detect_delimiter(file_path: str) -> str:
@@ -58,9 +90,12 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
     desc_keys = ['Description', 'DESCRIPTION', 'description', 'DESCRIPCION', 'DESCRIPCIÓN']
     qty_keys = ['Qty', 'QTY', 'Quantity']
     price_keys = ['Price', 'PRICE', 'Unit Price', 'UnitPrice']
+    salesperson_keys = ['Salesperson', 'SALESPERSON', 'Sales Person', 'Sales_Person']
 
     doc_key = next((k for k in header_keys if k in doc_keys), None)
     customer_key = next((k for k in header_keys if k in customer_keys), None)
+
+    sp_map = _get_salesperson_map()
 
     template_rows: List[Dict] = []
 
@@ -75,6 +110,8 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
             price = get_val(row, price_keys)
             doc_number = get_val(row, [doc_key])
             customer_name = get_val(row, [customer_key]) if customer_key else ''
+            salesperson_code = get_val(row, salesperson_keys).upper()
+            salesperson_name = sp_map.get(salesperson_code) if salesperson_code else ''
 
             try:
                 quantity = float(qty.replace(',', '')) if qty else 0.0
@@ -87,8 +124,8 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
 
             row_out: Dict = {
                 'name': '',
-                'partner_id': '',
-                'user_id': '',
+                'Cust #': '',
+                'Salesperson': '',
                 'activity_ids': '',
             }
 
@@ -96,8 +133,9 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
                 current_doc = doc_number
                 order_name = f"O{re.sub(r'\s+', '', doc_number)}"
                 row_out['name'] = order_name
-                row_out['partner_id'] = customer_name or 'Default User'
-                row_out['user_id'] = 'Jabes Omar De La Cruz'
+                row_out['Cust #'] = customer_name or 'Default User'
+                # user_id from salesperson mapping; fallback to previous default
+                row_out['Salesperson'] = salesperson_name or 'Jabes Omar De La Cruz'
 
             product_template_id = f"[{sku}] {description}"
             row_out.update({
@@ -131,14 +169,15 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
             unit_price = 0.0
         row_out: Dict = {
             'name': '',
-            'partner_id': '',
-            'user_id': '',
+            'Cust #': '',
+            'Salesperson': '',
             'activity_ids': '',
         }
         if first:
             row_out['name'] = quotation_number
-            row_out['partner_id'] = 'Default User'
-            row_out['user_id'] = 'Jabes Omar De La Cruz'
+            row_out['Cust #'] = 'Default User'
+            # No salesperson in single-order; keep default
+            row_out['Salesperson'] = 'Jabes Omar De La Cruz'
             first = False
         product_template_id = f"[{sku}] {description}"
         row_out.update({
