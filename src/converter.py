@@ -143,8 +143,6 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
                 row_out['partner_id'] = customer_name or 'Default User'
                 # user_id from salesperson mapping; fallback to previous default
                 row_out['user_id'] = salesperson_name or 'Jabes Omar De La Cruz'
-                row_out['Cust #'] = cust_value or customer_name or 'Default User'
-                row_out['Salesperson'] = salesperson_name or 'Jabes Omar De La Cruz'
 
             product_template_id = f"[{sku}] {description}"
             row_out.update({
@@ -154,6 +152,8 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
                 'order_line/product_id': product_template_id,
                 'order_line/product_template_id/name': description,
                 'order_line/product_template_id': product_template_id,
+                'Cust #': cust_value or customer_name or 'Default User',
+                'Salesperson': salesperson_name or 'Jabes Omar De La Cruz',
             })
             template_rows.append(row_out)
         return template_rows
@@ -200,6 +200,8 @@ def convert_rows(epicor_rows: List[Dict]) -> List[Dict]:
             'order_line/product_id': product_template_id,
             'order_line/product_template_id/name': description,
             'order_line/product_template_id': product_template_id,
+            'Cust #': 'Default User',
+            'Salesperson': 'Jabes Omar De La Cruz',
         })
         template_rows.append(row_out)
     return template_rows
