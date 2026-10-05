@@ -24,3 +24,21 @@ processed/*.csv
 # IDE
 .vscode/
 .idea/
+
+# Credentials and live automation data
+.env
+.env.*
+!.env.example
+*.log
+*.log.*
+Scheduler_Logs/
+downloads/
+last_processed.json
+cron_health_latest.json
+reliability_backups/
+*.xlsx
+*.xls
+Contact*.csv
+Descriptions.csv
+Orders.csv
+References.csv
